@@ -43,7 +43,7 @@ export const getUserProfile = () => api.get("/auth/me"); // Assuming this exists
 
 export const createRider = (data) => api.post("/admin/create-dispatch-rider", data)
 export const getAllRiders = (data) => api.get(`/admin/dispatch-riders/details?page=${data.page}&per_page=${data.per_page}`);
-export const assignRider = (data) => api.put(`/admin/assign-rider/${data.order_id}/${data.rider_id}`);
+export const assignRider = (data) => api.put(`/admin/assign-rider/${data.order_id}/${data.rider_id}?rider_status=busy`);
 
 // all orders
 export const getAllOrders = (data) => api.get(`/admin/orders/details?page=${data.page}&per_page=${data.per_page}`);

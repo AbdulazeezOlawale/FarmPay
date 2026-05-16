@@ -87,10 +87,11 @@ const { value: rider_id } = useField('rider_id');
 
 const onAssignRider = assignForm.handleSubmit(async (values, { setErrors }) => {
   try {
-    await assignRider(values);
+    const riderAssignment = await assignRider(values);
     isAssignModalOpen.value = false;
     assignForm.resetForm();
-
+    console.log(riderAssignment);
+    alert(riderAssignment.message);
   } catch (err) {
     // CAPTURE BACKEND ERROR: "Can only assign rider to paid orders"
     const errorMessage = err.detail || "Assignment failed";
