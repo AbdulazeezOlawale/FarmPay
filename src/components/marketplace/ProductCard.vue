@@ -26,7 +26,7 @@ console.log(props.product.images[0].image_url)
 <template>
   <div class="bg-white/5 border border-white/10 rounded-3xl overflow-hidden group hover:border-[#5cb83a]/50 transition-all duration-300">
     <div class="relative aspect-square overflow-hidden">
-      <img :src="productImageUrl" @error="(e) => e.target.src = 'https://via.placeholder.com/400?text=FarmPay+Produce'"
+      <img :src=" props.product?.images?.[0]?.image_url" @error="(e) => e.target.src = 'https://via.placeholder.com/400?text=FarmPay+Produce'"
            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
       
       <div class="absolute top-4 left-4 bg-[#061209]/80 backdrop-blur-md border border-[#5cb83a]/30 px-3 py-1.5 rounded-full flex items-center gap-2">
