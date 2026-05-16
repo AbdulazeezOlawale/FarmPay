@@ -1,8 +1,7 @@
 import axios from "axios";
+
 const api = axios.create({
-  // Use environment variables for flexibility
-  baseURL: "https://farmpay-j8a4.onrender.com/",
-  // Remove the hardcoded Content-Type header to allow flexibility for uploads
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     Accept: "application/json",
   },
