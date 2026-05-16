@@ -90,7 +90,16 @@ const copyToClipboard = async (id) => {
             </td>
 
             <td class="px-6 py-4">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#5cb83a]/10 border border-[#5cb83a]/20 text-[#7bc95a] text-[10px] font-bold uppercase">
+              <span 
+                v-if="rider.statistics?.pending_deliveries > 0"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase"
+              >
+                Busy
+              </span>
+              <span 
+                v-else
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#5cb83a]/10 border border-[#5cb83a]/20 text-[#7bc95a] text-[10px] font-bold uppercase"
+              >
                 Available
               </span>
             </td>
@@ -98,7 +107,7 @@ const copyToClipboard = async (id) => {
           </tr>
 
           <tr v-if="riders.length === 0">
-            <td colspan="5" class="px-6 py-12 text-center text-white/20 italic font-medium">
+            <td colspan="4" class="px-6 py-12 text-center text-white/20 italic font-medium">
               No dispatch riders found in the system.
             </td>
           </tr>
