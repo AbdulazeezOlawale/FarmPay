@@ -62,5 +62,12 @@ export const getAllProducts = (data) => api.get(`/admin/products/details?page=${
 // resolve dispute
 export const getAllDisputes = (data) => api.get(`/admin/disputes?page=${data.page}&per_page=${data.per_page}`);
 export const resolveDispute = (data) => api.put(`/admin/dispute/${data.disputeId}/resolve`, data.body);
+
+// Rider APIs
+export const getRiderOrders = () => api.get('/rider/rider/orders');
+export const markOrderPickedUp = (orderId) => api.patch(`/rider/order/${orderId}/picked-up`);
+export const confirmDelivery = (orderId, otp) => api.post(`/rider/confirm-delivery/${orderId}?otp=${otp}`);
+export const toggleRiderStatus = (isAvailable) => api.post('/rider/status', { is_available: isAvailable });
+
 // Rest of your APIs...
 export default api;
