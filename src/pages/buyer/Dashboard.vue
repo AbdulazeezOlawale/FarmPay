@@ -7,7 +7,8 @@ import {
   Package, ShieldCheck, Clock, CheckCircle2, 
   MapPin, Copy, Loader2, Inbox, LayoutDashboard,
   ShoppingBag, LogOut, Bell, RotateCw, 
-  AlertCircle, X, Upload, Trash2, ImageIcon
+  AlertCircle, X, Upload, Trash2, ImageIcon,
+  CreditCard, ScanLine, Eye, ExternalLink
 } from 'lucide-vue-next';
 
 const router = useRouter();
@@ -15,11 +16,26 @@ const auth = useAuthStore();
 const orders = ref([]);
 const isLoading = ref(true);
 
+// --- Payment Modal State ---
+const isPaymentModalOpen = ref(false);
+const paymentOrder = ref(null);
+const isInitiatingPayment = ref(false);
+const paymentError = ref('');
+const checkoutUrl = ref('');
+
+// --- Scan Delivery Modal State ---
+const isScanModalOpen = ref(false);
+const scanOrder = ref(null);
+const scanImage = ref(null);
+const scanImagePreview = ref(null);
+const isScanning = ref(false);
+const scanResult = ref(null);
+
 // --- Dispute Modal State ---
 const isDisputeModalOpen = ref(false);
 const disputeOrder = ref(null);
 const disputeReason = ref('');
-const disputeImages = ref([]); // Stores Base64 strings
+const disputeImages = ref([]);
 const isSubmittingDispute = ref(false);
 
 // User Profile
@@ -35,11 +51,94 @@ const fetchOrders = async () => {
   try {
     const response = await api.get('/orders/my-orders'); 
     orders.value = response.data || response;
-    console.log(orders.value)
   } catch (err) {
     console.error("Error fetching orders:", err);
   } finally {
     isLoading.value = false;
+  }
+};
+
+// --- Payment Logic ---
+const openPaymentModal = (order) => {
+  paymentOrder.value = order;
+  paymentError.value = '';
+  checkoutUrl.value = '';
+  isPaymentModalOpen.value = true;
+};
+
+const initiatePayment = async () => {
+  if (!paymentOrder.value) return;
+  
+  isInitiatingPayment.value = true;
+  paymentError.value = '';
+  
+  try {
+    const response = await api.post(`/payments/initiate/${paymentOrder.value.id}`);
+    checkoutUrl.value = response.checkout_url;
+  } catch (err) {
+    console.error("Payment initiation error:", err);
+    paymentError.value = err.detail || "Failed to initiate payment. Please try again.";
+  } finally {
+    isInitiatingPayment.value = false;
+  }
+};
+
+const proceedToCheckout = () => {
+  if (checkoutUrl.value) {
+    window.open(checkoutUrl.value, '_blank');
+  }
+};
+
+const checkPaymentStatus = async () => {
+  try {
+    await api.post('/payments/verify', { transaction_ref: paymentOrder.value.payment_reference });
+    alert('Payment verified successfully!');
+    isPaymentModalOpen.value = false;
+    fetchOrders();
+  } catch (err) {
+    paymentError.value = err.detail || "Payment not yet confirmed";
+  }
+};
+
+// --- Scan Delivery Logic ---
+const openScanModal = (order) => {
+  scanOrder.value = order;
+  scanImage.value = null;
+  scanImagePreview.value = null;
+  scanResult.value = null;
+  isScanModalOpen.value = true;
+};
+
+const handleScanImageUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    scanImage.value = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      scanImagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const performScan = async () => {
+  if (!scanImage.value || !scanOrder.value) return;
+  
+  isScanning.value = true;
+  scanResult.value = null;
+  
+  try {
+    const formData = new FormData();
+    formData.append('image', scanImage.value);
+    const response = await api.post(`/orders/scan-delivery/${scanOrder.value.id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    scanResult.value = response;
+  } catch (err) {
+    console.error("Scan error:", err);
+    alert(err.detail || "Failed to scan delivery");
+  } finally {
+    isScanning.value = false;
   }
 };
 
@@ -51,18 +150,18 @@ const openDisputeModal = (order) => {
   isDisputeModalOpen.value = true;
 };
 
-const handleImageUpload = (event) => {
+const handleDisputeImageUpload = (event) => {
   const files = Array.from(event.target.files);
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      disputeImages.value.push(e.target.result); // Base64 string
+      disputeImages.value.push(e.target.result);
     };
     reader.readAsDataURL(file);
   });
 };
 
-const removeImage = (index) => {
+const removeDisputeImage = (index) => {
   disputeImages.value.splice(index, 1);
 };
 
@@ -71,7 +170,6 @@ const submitDispute = async () => {
 
   isSubmittingDispute.value = true;
   try {
-    // Payload as per Swagger UI: order_id, reason, images (array of strings)
     await api.post('/disputes/create', {
       order_id: disputeOrder.value.id,
       reason: disputeReason.value,
@@ -80,7 +178,7 @@ const submitDispute = async () => {
 
     alert("Dispute submitted. Our team will review the evidence.");
     isDisputeModalOpen.value = false;
-    fetchOrders(); // Refresh to show disputed status
+    fetchOrders();
   } catch (err) {
     alert(err.response?.data?.message || "Failed to submit dispute.");
   } finally {
@@ -101,7 +199,7 @@ const copyOTP = (otp) => {
 
 onMounted(fetchOrders);
 
-// Stats Computed Logic
+// Stats
 const totalSpent = computed(() => {
   return orders.value
     .filter(o => o.status === 'completed')
@@ -113,6 +211,26 @@ const inEscrow = computed(() => {
     .filter(o => o.escrow_status === 'held')
     .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
 });
+
+const inTransit = computed(() => {
+  return orders.value.filter(o => 
+    o.delivery_status === 'in_transit' || 
+    o.delivery_status === 'transit' ||
+    o.delivery_status === 'assigned'
+  ).length;
+});
+
+const pendingPayment = computed(() => {
+  return orders.value.filter(o => o.payment_status === 'pending').length;
+});
+
+// Get order items summary
+const getOrderItems = (order) => {
+  if (order.order_items && order.order_items.length > 0) {
+    return order.order_items.map(item => item.product?.name || 'Produce').join(', ');
+  }
+  return 'Produce Order';
+};
 </script>
 
 <template>
@@ -159,26 +277,28 @@ const inEscrow = computed(() => {
             <h1 class="text-3xl font-serif">Buyer Terminal</h1>
             <p class="text-white/40 text-sm italic">Secure produce acquisition & escrow management.</p>
           </div>
-          <div class="flex items-center gap-3">
-            <button @click="fetchOrders" class="p-3 rounded-full bg-white/5 border border-white/10 hover:border-[#5cb83a] transition-all">
-              <RotateCw :size="18" :class="{ 'animate-spin': isLoading }" />
-            </button>
-          </div>
+          <button @click="fetchOrders" class="p-3 rounded-full bg-white/5 border border-white/10 hover:border-[#5cb83a] transition-all">
+            <RotateCw :size="18" :class="{ 'animate-spin': isLoading }" />
+          </button>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div class="bg-white/5 border border-white/10 p-6 rounded-[2.5rem]">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+          <div class="bg-white/5 border border-white/10 p-5 rounded-[2rem]">
             <p class="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Total Settled</p>
-            <p class="text-3xl font-serif">₦{{ totalSpent.toLocaleString() }}</p>
+            <p class="text-2xl font-serif">₦{{ totalSpent.toLocaleString() }}</p>
           </div>
-          <div class="bg-[#5cb83a]/10 border border-[#5cb83a]/20 p-6 rounded-[2.5rem] relative overflow-hidden">
-            <ShieldCheck class="absolute -right-4 -bottom-4 text-[#5cb83a]/5" :size="100" />
+          <div class="bg-[#5cb83a]/10 border border-[#5cb83a]/20 p-5 rounded-[2rem] relative overflow-hidden">
+            <ShieldCheck class="absolute -right-4 -bottom-4 text-[#5cb83a]/5" :size="80" />
             <p class="text-[10px] uppercase tracking-widest text-[#5cb83a] font-bold mb-2">Active Escrow</p>
-            <p class="text-3xl font-serif">₦{{ inEscrow.toLocaleString() }}</p>
+            <p class="text-2xl font-serif">₦{{ inEscrow.toLocaleString() }}</p>
           </div>
-          <div class="bg-white/5 border border-white/10 p-6 rounded-[2.5rem]">
-            <p class="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">In Transit</p>
-            <p class="text-3xl font-serif">{{ orders.filter(o => o.delivery_status === 'transit').length }}</p>
+          <div class="bg-blue-500/10 border border-blue-500/20 p-5 rounded-[2rem]">
+            <p class="text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-2">In Transit</p>
+            <p class="text-2xl font-serif">{{ inTransit }}</p>
+          </div>
+          <div class="bg-amber-500/10 border border-amber-500/20 p-5 rounded-[2rem]">
+            <p class="text-[10px] uppercase tracking-widest text-amber-500 font-bold mb-2">Pending Payment</p>
+            <p class="text-2xl font-serif">{{ pendingPayment }}</p>
           </div>
         </div>
 
@@ -192,58 +312,233 @@ const inEscrow = computed(() => {
           <div v-else-if="orders.length === 0" class="text-center py-20 bg-white/2 rounded-[2.5rem] border border-white/5">
             <Inbox :size="40" class="mx-auto mb-4 text-white/10" />
             <p class="text-white/40">No orders found.</p>
+            <button @click="router.push('/marketplace')" class="mt-4 text-[#5cb83a] text-sm font-bold hover:underline">
+              Browse Marketplace
+            </button>
           </div>
 
           <div v-else v-for="order in orders" :key="order.id" 
-               class="bg-[#0d2010] border border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 transition-all hover:bg-[#112814]">
+               class="bg-[#0d2010] border border-white/10 rounded-[2.5rem] p-6 transition-all hover:bg-[#112814]">
             
-            <div class="w-16 h-16 rounded-2xl bg-black/20 border border-white/5 flex items-center justify-center shrink-0">
-              <Package class="text-[#5cb83a]/40" :size="28" />
-            </div>
-
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-[9px] font-mono text-white/20 uppercase">#{{ order.id.slice(-8) }}</span>
-                <h4 class="font-bold text-lg leading-tight">{{ order.delivery_location }} Delivery</h4>
+            <!-- Order Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-black/20 border border-white/5 flex items-center justify-center">
+                  <Package class="text-[#5cb83a]/40" :size="24" />
+                </div>
+                <div>
+                  <span class="text-[9px] font-mono text-white/20 uppercase block mb-1">#{{ order.id.slice(-8) }}</span>
+                  <h4 class="font-bold text-lg">{{ getOrderItems(order) }}</h4>
+                </div>
               </div>
               
-              <div class="flex gap-4 items-center">
-                <div v-if="order.delivery_status === 'disputed'" class="text-red-400 font-bold text-[10px] uppercase flex items-center gap-1">
-                  <AlertCircle :size="12" /> Disputed
-                </div>
-                <div v-else-if="order.status === 'completed'" class="text-[#5cb83a] font-bold text-[10px] uppercase flex items-center gap-1">
-                  <CheckCircle2 :size="12" /> Success
-                </div>
-                <div v-else class="text-white/40 font-bold text-[10px] uppercase flex items-center gap-1">
-                  <Clock :size="12" /> {{ order.delivery_status }}
-                </div>
-              </div>
-            </div>
-
-            <div v-if="order.status !== 'completed' && order.delivery_status !== 'disputed' && order.otp_code" 
-                 class="bg-black/40 border border-[#5cb83a]/20 px-6 py-4 rounded-3xl text-center">
-              <span class="text-[8px] uppercase tracking-widest text-[#5cb83a] font-bold block mb-1">Release Code</span>
               <div class="flex items-center gap-3">
-                <span class="text-xl font-mono font-bold text-[#f0ede4]">{{ order.otp_code }}</span>
-                <button @click="copyOTP(order.otp_code)" class="text-white/20 hover:text-[#5cb83a]"><Copy :size="14" /></button>
+                <span 
+                  class="px-3 py-1.5 rounded-lg text-[8px] font-bold uppercase tracking-wider"
+                  :class="{
+                    'bg-amber-500/10 text-amber-500': order.payment_status === 'pending',
+                    'bg-blue-500/10 text-blue-400': order.delivery_status === 'in_transit' || order.delivery_status === 'transit',
+                    'bg-[#5cb83a]/10 text-[#5cb83a]': order.status === 'completed',
+                    'bg-red-500/10 text-red-400': order.delivery_status === 'disputed',
+                  }"
+                >
+                  {{ order.payment_status === 'pending' ? 'Payment Pending' : order.delivery_status === 'in_transit' ? 'In Transit' : order.delivery_status }}
+                </span>
               </div>
             </div>
 
-            <div v-if="order.status !== 'completed' && order.delivery_status !== 'disputed'">
-              <button @click="openDisputeModal(order)" class="bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all">
+            <!-- Order Details Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 pb-4 border-b border-white/5">
+              <div>
+                <p class="text-[8px] uppercase text-white/30 font-bold mb-1">Delivery To</p>
+                <p class="text-xs text-white/60">{{ order.delivery_location || 'Not specified' }}</p>
+              </div>
+              <div>
+                <p class="text-[8px] uppercase text-white/30 font-bold mb-1">Delivery Fee</p>
+                <p class="text-xs text-white/60">₦{{ (order.delivery_fee || 0).toLocaleString() }}</p>
+              </div>
+              <div>
+                <p class="text-[8px] uppercase text-white/30 font-bold mb-1">Escrow Status</p>
+                <p class="text-xs" :class="order.escrow_status === 'held' ? 'text-amber-400' : 'text-[#5cb83a]'">
+                  {{ order.escrow_status || 'N/A' }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[8px] uppercase text-white/30 font-bold mb-1">Total Amount</p>
+                <p class="text-sm font-serif text-[#5cb83a]">₦{{ (order.total_amount || 0).toLocaleString() }}</p>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+              <!-- Payment Button - for pending orders -->
+              <button 
+                v-if="order.payment_status === 'pending'"
+                @click="openPaymentModal(order)"
+                class="bg-[#5cb83a] text-[#061209] px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-[#4da330] transition-all"
+              >
+                <CreditCard :size="14" />
+                Pay Now
+              </button>
+
+              <!-- Scan Delivery Button - for in transit orders -->
+              <button 
+                v-if="order.delivery_status === 'in_transit' || order.delivery_status === 'transit'"
+                @click="openScanModal(order)"
+                class="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-blue-500/20 transition-all"
+              >
+                <ScanLine :size="14" />
+                Scan Delivery
+              </button>
+
+              <!-- OTP - for paid orders not completed -->
+              <div v-if="order.payment_status === 'paid' && order.status !== 'completed' && order.otp_code && order.delivery_status !== 'disputed'" 
+                   class="bg-black/40 border border-[#5cb83a]/20 px-5 py-2.5 rounded-xl">
+                <span class="text-[8px] uppercase tracking-widest text-[#5cb83a] font-bold block mb-1">Release Code</span>
+                <div class="flex items-center gap-3">
+                  <span class="text-lg font-mono font-bold">{{ order.otp_code }}</span>
+                  <button @click="copyOTP(order.otp_code)" class="text-white/30 hover:text-[#5cb83a]">
+                    <Copy :size="14" />
+                  </button>
+                </div>
+              </div>
+
+              <!-- Dispute Button -->
+              <button 
+                v-if="order.status !== 'completed' && order.delivery_status !== 'disputed' && order.payment_status === 'paid'"
+                @click="openDisputeModal(order)"
+                class="bg-red-500/10 text-red-400 border border-red-500/20 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all"
+              >
+                <AlertCircle :size="14" />
                 Dispute
               </button>
-            </div>
 
-            <div class="text-right shrink-0">
-               <span class="text-[9px] text-white/20 block uppercase font-bold mb-1">Total Amount</span>
-               <span class="text-xl font-serif">₦{{ (order.total_amount || 0).toLocaleString() }}</span>
+              <!-- Completed Status -->
+              <div v-if="order.status === 'completed'" class="flex items-center gap-2 text-[#5cb83a]">
+                <CheckCircle2 :size="18" />
+                <span class="text-[10px] font-bold uppercase">Delivered & Paid</span>
+              </div>
             </div>
           </div>
         </section>
       </div>
     </main>
 
+    <!-- Payment Modal -->
+    <div v-if="isPaymentModalOpen" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-[#061209]/95 backdrop-blur-md">
+      <div class="bg-[#0d2010] border border-white/10 w-full max-w-md rounded-[3rem] p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-serif">Complete Payment</h2>
+          <button @click="isPaymentModalOpen = false" class="text-white/20 hover:text-white"><X :size="24" /></button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-white/5 rounded-xl p-4">
+            <p class="text-[10px] uppercase text-white/30 mb-1">Order Amount</p>
+            <p class="text-2xl font-serif text-[#5cb83a]">₦{{ (paymentOrder?.total_amount || 0).toLocaleString() }}</p>
+          </div>
+
+          <p class="text-sm text-white/40">
+            Click below to proceed to secure payment via Squad. Your funds will be held in escrow until delivery is confirmed.
+          </p>
+
+          <div v-if="paymentError" class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
+            {{ paymentError }}
+          </div>
+
+          <div v-if="checkoutUrl" class="space-y-3">
+            <button 
+              @click="proceedToCheckout"
+              class="w-full bg-[#5cb83a] text-[#061209] py-4 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#4da330]"
+            >
+              <ExternalLink :size="16" />
+              Open Secure Checkout
+            </button>
+            <button 
+              @click="checkPaymentStatus"
+              class="w-full bg-white/5 text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+            >
+              I've Completed Payment
+            </button>
+          </div>
+
+          <button 
+            v-else
+            @click="initiatePayment"
+            :disabled="isInitiatingPayment"
+            class="w-full bg-[#5cb83a] text-[#061209] py-4 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Loader2 v-if="isInitiatingPayment" class="animate-spin" :size="18" />
+            <CreditCard v-else :size="18" />
+            {{ isInitiatingPayment ? 'Processing...' : 'Proceed to Payment' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan Delivery Modal -->
+    <div v-if="isScanModalOpen" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-[#061209]/95 backdrop-blur-md">
+      <div class="bg-[#0d2010] border border-white/10 w-full max-w-md rounded-[3rem] p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-serif">Scan Delivery</h2>
+          <button @click="isScanModalOpen = false" class="text-white/20 hover:text-white"><X :size="24" /></button>
+        </div>
+
+        <p class="text-sm text-white/40 mb-4">
+          Upload a photo of your delivered produce to verify quality before confirming with the rider.
+        </p>
+
+        <div class="space-y-4">
+          <!-- Image Upload -->
+          <div v-if="!scanImagePreview" class="border-2 border-dashed border-white/10 rounded-2xl p-8 text-center">
+            <label class="cursor-pointer">
+              <Upload class="mx-auto mb-3 text-white/30" :size="32" />
+              <p class="text-sm text-white/40 mb-2">Tap to upload photo</p>
+              <input type="file" accept="image/*" class="hidden" @change="handleScanImageUpload" />
+            </label>
+          </div>
+
+          <!-- Image Preview -->
+          <div v-else class="relative rounded-2xl overflow-hidden">
+            <img :src="scanImagePreview" class="w-full aspect-video object-cover" />
+            <button @click="scanImage = null; scanImagePreview = null" class="absolute top-2 right-2 bg-red-500 p-2 rounded-lg">
+              <X :size="16" />
+            </button>
+          </div>
+
+          <!-- Scan Result -->
+          <div v-if="scanResult" class="p-4 rounded-xl" :class="scanResult.is_healthy ? 'bg-[#5cb83a]/10 border border-[#5cb83a]/20' : 'bg-red-500/10 border border-red-500/20'">
+            <div class="flex items-center gap-3 mb-2">
+              <CheckCircle2 v-if="scanResult.is_healthy" class="text-[#5cb83a]" :size="24" />
+              <AlertCircle v-else class="text-red-400" :size="24" />
+              <span class="font-bold" :class="scanResult.is_healthy ? 'text-[#5cb83a]' : 'text-red-400'">
+                {{ scanResult.is_healthy ? 'Product Looks Good!' : 'Issues Detected' }}
+              </span>
+            </div>
+            <p class="text-xs text-white/60">{{ scanResult.recommendation }}</p>
+            <p v-if="scanResult.disease_name" class="text-xs text-red-400 mt-2">
+              Issue: {{ scanResult.disease_name }}
+            </p>
+          </div>
+
+          <button 
+            @click="performScan"
+            :disabled="!scanImage || isScanning"
+            class="w-full bg-blue-500 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
+          >
+            <Loader2 v-if="isScanning" class="animate-spin" :size="18" />
+            <ScanLine v-else :size="18" />
+            {{ isScanning ? 'Analyzing...' : 'Analyze Photo' }}
+          </button>
+
+          <p class="text-[10px] text-white/30 text-center">
+            AI-powered quality detection
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dispute Modal -->
     <div v-if="isDisputeModalOpen" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-[#061209]/95 backdrop-blur-md">
       <div class="bg-[#0d2010] border border-white/10 w-full max-w-lg rounded-[3rem] p-8 shadow-2xl">
         
@@ -264,12 +559,12 @@ const inEscrow = computed(() => {
             <div class="grid grid-cols-3 gap-3">
               <div v-for="(img, idx) in disputeImages" :key="idx" class="relative aspect-square rounded-xl overflow-hidden border border-white/10">
                 <img :src="img" class="w-full h-full object-cover" />
-                <button @click="removeImage(idx)" class="absolute top-1 right-1 bg-red-500 p-1 rounded-lg"><Trash2 :size="12" /></button>
+                <button @click="removeDisputeImage(idx)" class="absolute top-1 right-1 bg-red-500 p-1 rounded-lg"><Trash2 :size="12" /></button>
               </div>
               <label v-if="disputeImages.length < 3" class="aspect-square rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-white/5 transition-all">
                 <Upload class="text-[#5cb83a]" :size="18" />
                 <span class="text-[8px] font-bold uppercase opacity-40">Add</span>
-                <input type="file" multiple accept="image/*" class="hidden" @change="handleImageUpload" />
+                <input type="file" multiple accept="image/*" class="hidden" @change="handleDisputeImageUpload" />
               </label>
             </div>
           </div>

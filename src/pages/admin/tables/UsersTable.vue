@@ -1,9 +1,10 @@
 <script setup>
+import { ref } from 'vue';
 import { 
   Mail, Phone, User, Copy, Check, 
-  ShieldCheck, ShoppingBag, Truck, Leaf 
+  ShieldCheck, ShoppingBag, Truck, Leaf,
+  Loader2, CheckCircle
 } from 'lucide-vue-next';
-import { ref } from 'vue';
 
 const props = defineProps({
   users: {
@@ -15,9 +16,10 @@ const props = defineProps({
   totalPages: Number
 });
 
-const emit = defineEmits(['changePage']);
+const emit = defineEmits(['changePage', 'verifyUser']);
 
 const copiedId = ref(null);
+const verifyingId = ref(null);
 
 const copyToClipboard = async (id) => {
   try {
@@ -27,6 +29,12 @@ const copyToClipboard = async (id) => {
   } catch (err) {
     console.error('Failed to copy!', err);
   }
+};
+
+const verifyUser = async (userId) => {
+  verifyingId.value = userId;
+  emit('verifyUser', userId);
+  setTimeout(() => { verifyingId.value = null; }, 3000);
 };
 
 const getRoleStyles = (role) => {
@@ -43,6 +51,11 @@ const getRoleStyles = (role) => {
       return { bg: 'bg-white/10', border: 'border-white/20', text: 'text-white/60', icon: User };
   }
 };
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 </script>
 
 <template>
@@ -55,7 +68,9 @@ const getRoleStyles = (role) => {
             <th class="px-6 py-4">User ID</th>
             <th class="px-6 py-4">Contact Info</th>
             <th class="px-6 py-4">Role</th>
+            <th class="px-6 py-4">Status</th>
             <th class="px-6 py-4">Joined Date</th>
+            <th class="px-6 py-4">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
@@ -67,7 +82,9 @@ const getRoleStyles = (role) => {
                 </div>
                 <div>
                   <div class="font-semibold text-[#f0ede4] capitalize text-sm">{{ user.full_name }}</div>
-                  <div v-if="user.is_verified" class="text-[9px] text-[#7bc95a] uppercase font-bold tracking-tighter">Verified Account</div>
+                  <div v-if="user.is_verified" class="text-[9px] text-[#7bc95a] uppercase font-bold tracking-tighter flex items-center gap-1">
+                    <CheckCircle :size="10" /> Verified
+                  </div>
                 </div>
               </div>
             </td>
@@ -99,8 +116,37 @@ const getRoleStyles = (role) => {
               </span>
             </td>
 
+            <td class="px-6 py-4">
+              <span 
+                v-if="user.is_verified"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#5cb83a]/10 text-[#5cb83a] text-[9px] font-bold uppercase"
+              >
+                <CheckCircle :size="10" /> Active
+              </span>
+              <span 
+                v-else
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-500 text-[9px] font-bold uppercase"
+              >
+                Pending
+              </span>
+            </td>
+
             <td class="px-6 py-4 text-xs text-white/40 font-medium">
-              {{ new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }}
+              {{ formatDate(user.created_at) }}
+            </td>
+
+            <td class="px-6 py-4">
+              <button 
+                v-if="!user.is_verified"
+                @click="verifyUser(user.id)"
+                :disabled="verifyingId === user.id"
+                class="px-3 py-1.5 rounded-lg bg-[#5cb83a]/10 text-[#5cb83a] text-[9px] font-bold uppercase tracking-wider hover:bg-[#5cb83a]/20 transition-all flex items-center gap-1.5"
+              >
+                <Loader2 v-if="verifyingId === user.id" class="animate-spin" :size="12" />
+                <CheckCircle v-else :size="12" />
+                Verify
+              </button>
+              <span v-else class="text-[9px] text-white/20 uppercase">-</span>
             </td>
           </tr>
         </tbody>

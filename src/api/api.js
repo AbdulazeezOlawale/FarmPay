@@ -62,5 +62,39 @@ export const getAllProducts = (data) => api.get(`/admin/products/details?page=${
 // resolve dispute
 export const getAllDisputes = (data) => api.get(`/admin/disputes?page=${data.page}&per_page=${data.per_page}`);
 export const resolveDispute = (data) => api.put(`/admin/dispute/${data.disputeId}/resolve`, data.body);
+
+// Rider APIs
+export const getRiderOrders = () => api.get('/rider/rider/orders');
+export const markOrderPickedUp = (orderId) => api.patch(`/rider/order/${orderId}/picked-up`);
+export const confirmDelivery = (orderId, otp) => api.post(`/rider/confirm-delivery/${orderId}?otp=${otp}`);
+export const toggleRiderStatus = (isAvailable) => api.post('/rider/status', { is_available: isAvailable });
+
+// Buyer APIs
+export const createOrder = (data) => api.post('/orders/create', data);
+export const initiatePayment = (orderId) => api.post(`/payments/initiate/${orderId}`);
+export const verifyPayment = (transactionRef) => api.post('/payments/verify', { transaction_ref: transactionRef });
+export const scanDelivery = (orderId, imageFile) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  return api.post(`/orders/scan-delivery/${orderId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
+export const createReview = (data) => api.post('/reviews/', data);
+export const getProductReviews = (productId) => api.get(`/reviews/product/${productId}`);
+
+// Farmer APIs
+export const getFarmerProfile = () => api.get('/auth/profile');
+export const getMyProducts = () => api.get('/products/my-products');
+export const uploadProduct = (formData) => api.post('/products/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const deleteProduct = (productId) => api.delete(`/products/${productId}`);
+
+// Admin APIs
+export const getAdminDashboardCounts = () => api.get('/admin/dashboard/counts');
+export const verifyUser = (userId) => api.post(`/admin/verify_user/${userId}`);
+export const getAvailableRiders = () => api.get('/admin/dispatch-riders');
+
 // Rest of your APIs...
 export default api;
