@@ -7,9 +7,8 @@ import {
   CheckCircle2, Mail, Lock, Phone 
 } from 'lucide-vue-next';
 import { register as registerApi, login as loginApi } from '../../api/api';
-import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
-
+import { useAuthStore } from '../../stores/auth';
 
 const role = ref('buyer'); 
 const auth = useAuthStore();
@@ -61,25 +60,19 @@ const onSignup = handleSubmit(async (values) => {
 
     // 2. DECISION LOGIC:
     if (role.value === 'farmer') {
-      // For Farmers: We need a token to hit 'complete-profile'
-      // We perform an "Auto-Login" so they don't have to sign in manually
+      // For Farmers: Auto-login and redirect to complete-profile
       const loginRes = await loginApi({
         email: values.email,
         password: values.password
       });
-
-      // Save to store so the 'CompleteProfile' page can make authorized calls
-      auth.setAuth(loginRes, loginRes.access_token); 
-
-      // Redirect to the specialized profile setup
+      auth.setAuth(loginRes, loginRes.access_token);
       return router.push({ name: 'CompleteProfile' });
-    } 
+    }
 
-    auth.setAuth(newUser, auth.token)
-    // 3. For Buyers: No extra steps needed, send to Login
-    router.push({ 
-      name: 'Login', 
-      query: { registered: 'true', message: 'Account created! Please sign in.' } 
+    // 3. For Buyers: Send to Login
+    router.push({
+      name: 'Login',
+      query: { registered: 'true', message: 'Account created! Please sign in.' }
     });
 
   } catch (err) {

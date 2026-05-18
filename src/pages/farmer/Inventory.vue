@@ -1,15 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '../../stores/auth';
-import { getMyProducts} from '@/api/api';
+import { getMyProducts, deleteProduct } from '@/api/api';
 import { 
-  Package, Plus, Edit, Trash2, Loader2, 
-  RefreshCw, Image, Eye, AlertTriangle
+  Package, Plus, Trash2, Loader2,
+  RefreshCw, Eye, AlertTriangle
 } from 'lucide-vue-next';
-
-const router = useRouter();
-const auth = useAuthStore();
 
 const products = ref([]);
 const isLoading = ref(true);
@@ -19,8 +14,7 @@ const deleteError = ref('');
 const fetchProducts = async () => {
   isLoading.value = true;
   try {
-    const response = await getMyProducts();
-    products.value = response.data || response;
+    products.value = await getMyProducts();
   } catch (err) {
     console.error("Failed to fetch products:", err);
   } finally {
@@ -30,7 +24,7 @@ const fetchProducts = async () => {
 
 const handleDelete = async (productId) => {
   if (!confirm('Are you sure you want to delete this product?')) return;
-  
+
   isDeleting.value = productId;
   try {
     await deleteProduct(productId);

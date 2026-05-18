@@ -1,22 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../../stores/auth';
 import api from '@/api/api';
-import { 
-  Package, Loader2, Clock, CheckCircle2, 
+import {
+  Package, Loader2, Clock, CheckCircle2,
   AlertCircle, MapPin, User, Phone, ChevronRight,
   Truck, Calendar
 } from 'lucide-vue-next';
 
-const auth = useAuthStore();
 const isLoading = ref(true);
 const orders = ref([]);
 
 const fetchOrders = async () => {
   isLoading.value = true;
   try {
-    const response = await api.get('/orders/farmer-orders');
-    orders.value = response.data || response;
+    orders.value = await api.get('/orders/farmer-orders');
   } catch (err) {
     console.error("Failed to fetch orders:", err);
   } finally {

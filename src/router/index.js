@@ -57,12 +57,6 @@ const routes = [
     ],
   },
   {
-    path: "/farmer",
-    name: "FarmerDashboard",
-    component: FarmerDashboard,
-    meta: { requiresAuth: true, role: "farmer" },
-  },
-  {
     path: "/rider",
     name: "RiderDashboard",
     component: RiderDashboard,

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useForm, useField } from 'vee-validate';
 import * as yup from 'yup';
 import { useAuthStore } from '../../stores/auth';
-import { completeProfile as completeProfileApi, getUserProfile } from '../../api/api';
+import { completeProfile as completeProfileApi } from '../../api/api';
 import { 
   Wallet, MapPin, ShieldCheck, Landmark, Fingerprint, 
   ArrowRight, Info, Loader2, AlertCircle, CheckCircle2, Store
@@ -55,33 +55,19 @@ const { value: accountNumber } = useField('accountNumber');
 const onComplete = handleSubmit(async (values) => {
   serverError.value = '';
   try {
-    // const farmerProfile = await completeProfileApi({
-    //   business_name: values.businessName,
-    //   zone: values.zone,
-    //   lga: values.lga,
-    //   address: values.address,
-    //   nin_bvn: values.idNumber,
-    //   bank_name: values.bankName,
-    //   account_number: values.accountNumber
-    // });
-    const farmerProfile = await completeProfileApi({
+    await completeProfileApi({
       business_name: values.businessName,
-     location: `kaduna_${values.zone.toLowerCase()}`,
-     nin: values.idNumber,
-     bank_name: values.bankName,
-     account_number: values.accountNumber
+      location: `kaduna_${values.zone.toLowerCase()}`,
+      nin: values.idNumber,
+      bank_name: values.bankName,
+      account_number: values.accountNumber
     });
 
-    console.log(farmerProfile)
-
-     auth.user.profile = farmerProfile;
      auth.setVerified(true);
-     const updatedUser = auth.user;
-    auth.setAuth(updatedUser, auth.token);
-    router.push({ name: 'FarmerDashboard' });
+     router.push({ name: 'FarmerDashboard' });
 
   } catch (err) {
-    serverError.value = err.response?.data?.detail || "Verification failed. Check your ID/Account details.";
+    serverError.value = err.detail || "Verification failed. Check your ID/Account details.";
   }
 });
 </script>

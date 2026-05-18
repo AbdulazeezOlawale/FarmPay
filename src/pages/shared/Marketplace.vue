@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '@/api/api'; 
+import api from '@/api/api';
 import ProductCard from '@/components/marketplace/ProductCard.vue';
-import PaymentModal from '../../components/PaymentModal.vue';
-import { Search, Filter, Loader2, Package } from 'lucide-vue-next';
+import PaymentModal from '@/components/PaymentModal.vue';
+import { Search, Loader2, Package } from 'lucide-vue-next';
 
 const products = ref([]);
 const loading = ref(true);
@@ -53,10 +53,29 @@ const mockProducts = [
     unit_type: "Basket",
     location: "Zaria (Zone 1)",
     quality_score: 98,
-    image_url: "https://images.unsplash.com/photo-1582284540020-8acbe03f4924?auto=format&fit=crop&w=400&q=80",
+    images: [{ image_url: "https://images.unsplash.com/photo-1582284540020-8acbe03f4924?auto=format&fit=crop&w=400&q=80" }],
     farmer_name: "Amina Yusuf"
   },
-  // ... other mock items
+  {
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    name: "Fresh Pepper Mix",
+    price: 8500,
+    unit_type: "Basket",
+    location: "Kaduna (Zone 2)",
+    quality_score: 95,
+    images: [{ image_url: "https://images.unsplash.com/photo-1582284540020-8acbe03f4924?auto=format&fit=crop&w=400&q=80" }],
+    farmer_name: "Garba Abubakar"
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    name: "Green Maize",
+    price: 12000,
+    unit_type: "100kg Bag",
+    location: "Zaria (Zone 1)",
+    quality_score: 92,
+    images: [{ image_url: "https://images.unsplash.com/photo-1582284540020-8acbe03f4924?auto=format&fit=crop&w=400&q=80" }],
+    farmer_name: "Fatima Bello"
+  }
 ];
 
 onMounted(fetchProducts);

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import api from '@/api/api';
-import { X, Upload, Leaf, BadgeCheck, Loader2, ScanEye, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-vue-next';
+import { X, Upload, BadgeCheck, Loader2, ScanEye, AlertTriangle, CheckCircle } from 'lucide-vue-next';
 
 const props = defineProps(['isOpen']);
 const emit = defineEmits(['close', 'refresh']);
@@ -11,7 +11,6 @@ const isScanning = ref(false);
 const imageFile = ref(null);
 const imagePreview = ref(null);
 
-// Scan results from backend
 const scanResult = ref(null);
 const scanComplete = ref(false);
 
@@ -35,52 +34,40 @@ const onFileChange = (e) => {
 };
 
 const handleListing = async () => {
-  if (!imageFile.value) return alert("Please upload a product image");
+  if (!imageFile.value || !form.value.name || !form.value.price) return;
 
   try {
-    // 1. START AI SCAN SIMULATION
     isScanning.value = true;
-    await new Promise(resolve => setTimeout(resolve, 2500)); 
-    isScanning.value = false;
 
-    // 2. START UPLOAD
-    isSubmitting.value = true;
-    
     const formData = new FormData();
     formData.append('name', form.value.name);
     formData.append('description', form.value.description || '');
-    formData.append('price', parseFloat(form.value.price)); 
+    formData.append('price', parseFloat(form.value.price));
     formData.append('available_quantity', parseInt(form.value.available_quantity));
     formData.append('unit', form.value.unit);
     formData.append('image', imageFile.value);
 
-    // 3. API CALL
     const response = await api.post('/products/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    
-    // Capture scan results from backend
+
     scanResult.value = {
       is_healthy: !response.issue_type,
       disease_name: response.name || null,
       treatment: response.treatment || null,
       issue_type: response.issue_type || null
     };
-    
-    // If unhealthy, show info but still allow listing with warning
-    if (!scanResult.value.is_healthy) {
-      scanComplete.value = true;
-      // Still save but mark as unhealthy
-    }
-    
-    emit('refresh');
-    emit('close');
-    resetForm();
+    scanComplete.value = true;
+
+    setTimeout(() => {
+      emit('refresh');
+      emit('close');
+      resetForm();
+    }, 2000);
 
   } catch (err) {
-    console.error("Upload failed:", err.response?.data || err.message);
-    const msg = err.response?.data?.detail || "Upload failed";
-    alert(`Error: ${msg}`);
+    console.error("Upload failed:", err);
+    alert(err.detail || "Upload failed");
   } finally {
     isSubmitting.value = false;
     isScanning.value = false;

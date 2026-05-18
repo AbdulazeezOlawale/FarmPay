@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useForm, useField } from 'vee-validate';
 import * as yup from 'yup';
 import { useAuthStore } from '../../stores/auth';
-import { login as loginApi, getUserProfile } from '../../api/api';
+import { login as loginApi } from '../../api/api';
 import { 
   Wallet, Mail, Lock, ArrowRight, 
   ShieldCheck, CheckCircle2, LogIn 
@@ -95,14 +95,11 @@ const onLogin = handleSubmit(async (values) => {
     }
 
     if (role === 'admin') {
-      // Ensure this route is defined in your router to avoid warnings
-      return router.push({ name: 'AdminRiders' });
+      return router.push({ name: 'AdminOverview' });
     }
 
   } catch (err) {
-    // Improved error capturing for the UI
-    loginError.value = err.response?.data?.detail || "Invalid email or password.";
-    console.error("Login Error:", err.response?.data || err);
+    loginError.value = err.detail || "Invalid email or password.";
   }
 });
 </script>

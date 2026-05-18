@@ -2,12 +2,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
-import api from '@/api/api'; 
-import { 
-  LayoutDashboard, PlusCircle, Package, Wallet, 
-  History, Settings, LogOut, ShoppingBag,
+import api from '@/api/api';
+import {
+  LayoutDashboard, PlusCircle, Package,
+  Wallet, History, Settings, LogOut, ShoppingBag,
   ShieldAlert, TrendingUp, CheckCircle2,
-  Clock, ChevronRight, BarChart3, Cloud
+  Clock, ChevronRight
 } from 'lucide-vue-next';
 
 import AddProductModal from '../../components/farmer/AddProductModal.vue';
@@ -18,8 +18,7 @@ const auth = useAuthStore();
 const router = useRouter();
 const selectedPeriod = ref('7d');
 
-// Computed user properties
-const userName = computed(() => auth.user?.full_name || 'Farmer');
+const userName = computed(() => auth.user?.fullName || 'Farmer');
 const isVerified = computed(() => auth.user?.isVerified || false);
 
 // Reactive stats
@@ -35,26 +34,21 @@ const isAddModalOpen = ref(false);
 
 const fetchFarmerData = async () => {
   try {
-    const { data: orders } = await api.get('/orders/farmer-orders'); 
-    
-    // Process recent orders
-    recentOrders.value = orders.slice(0, 5).map(order => ({
-      id: order.order_id,
+    const orders = await api.get('/orders/farmer-orders');
+
+    recentOrders.value = (orders.slice || orders).slice(0, 5).map(order => ({
+      id: order.id || order.order_id,
       buyer: order.buyer_name,
       price: `₦${(order.total_amount || 0).toLocaleString()}`,
       status: order.status,
       produce: order.items?.[0]?.product?.name || 'Farm Produce'
     }));
 
-    // Update Stats directly by index
     const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
     stats.value[0].value = `₦${totalRevenue.toLocaleString()}`;
-    
-    const pendingCount = orders.filter(o => o.delivery_status === 'pending').length;
+
+    const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'paid').length;
     stats.value[2].value = pendingCount.toString();
-    
-    // Example: Update active listings count if available in data
-    stats.value[1].value = orders.length.toString(); 
 
   } catch (err) {
     console.warn("Farmer data fetch failed.");

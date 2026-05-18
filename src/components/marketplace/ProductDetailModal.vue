@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { X, MapPin, ShieldCheck, AlertTriangle, CheckCircle, Package, User, Star, ShoppingCart } from 'lucide-vue-next';
+import { X, MapPin, ShieldCheck, AlertTriangle, CheckCircle, User, ShoppingCart } from 'lucide-vue-next';
 
 const props = defineProps({
   product: {
@@ -17,17 +17,18 @@ const emit = defineEmits(['close', 'buy']);
 
 const isHealthy = computed(() => {
   const scanResult = props.product?.images?.[0]?.scan_result;
-  return scanResult ? !scanResult.disease_detected : true;
+  return !scanResult?.disease_detected;
 });
 
 const diseaseInfo = computed(() => {
   const scanResult = props.product?.images?.[0]?.scan_result;
-  if (!scanResult || scanResult.disease_detected === false) return null;
-  
-  return {
-    name: scanResult.disease_name || 'Unknown Issue',
-    status: scanResult.status
-  };
+  if (scanResult?.disease_detected) {
+    return {
+      name: scanResult.disease_name || 'Unknown Issue',
+      status: scanResult.status
+    };
+  }
+  return null;
 });
 
 const farmerInfo = computed(() => {

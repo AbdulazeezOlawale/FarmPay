@@ -56,26 +56,19 @@ const handlePayment = async () => {
   errorMessage.value = '';
 
   try {
-    // 1. Create the Order in the DB
     const orderRes = await api.post('/orders/create', {
-      items: [{ 
-        product_id: props.product.id, 
-        quantity: quantity.value 
+      items: [{
+        product_id: props.product.id,
+        quantity: quantity.value
       }],
       delivery_address: selectedAddress.value.place_name || `${selectedAddress.value.address}, ${selectedAddress.value.city}`,
-      buyer_address: buyerAddress.value
     });
 
-    const orderData = orderRes.data || orderRes;
-    const orderId = orderData.order_id || orderData.id;
+    const orderId = orderRes.order_id || orderRes.id;
 
-    // 2. Get Payment Params for Squad
     const payRes = await api.post(`/payments/initiate/${orderId}`);
-    const payData = payRes.data || payRes;
+    const checkoutUrl = payRes.checkout_url || payRes.data?.checkout_url;
 
-    // 3. Redirect to Squad Authorization URL
-    const checkoutUrl = payData.checkout_url || payData.data?.checkout_url;
-    
     if (checkoutUrl) {
       window.location.href = checkoutUrl;
     } else {
@@ -84,7 +77,7 @@ const handlePayment = async () => {
 
   } catch (err) {
     console.error("Payment Flow Error:", err);
-    errorMessage.value = err.response?.data?.detail || err.detail || "Could not initialize payment.";
+    errorMessage.value = err.detail || "Could not initialize payment.";
   } finally {
     isProcessing.value = false;
   }

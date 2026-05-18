@@ -1,9 +1,8 @@
 <script setup>
 import { ref } from 'vue';
-import { ShieldCheck, MapPin, ShoppingCart, Star, Loader2, Eye } from 'lucide-vue-next';
+import { ShieldCheck, MapPin, ShoppingCart, Star, Eye } from 'lucide-vue-next';
 import { getProductReviews } from '@/api/api';
 import Reviews from './Reviews.vue';
-import ProductDetailModal from './ProductDetailModal.vue';
 
 const props = defineProps({
   product: {
@@ -16,14 +15,12 @@ const emit = defineEmits(['open-modal']);
 
 const showReviews = ref(false);
 const showDetail = ref(false);
-const isLoadingReviews = ref(false);
 const reviewCount = ref(0);
 
 const loadReviewCount = async () => {
   try {
-    const response = await getProductReviews(props.product.id);
-    const reviews = response.data || response;
-    reviewCount.value = reviews.length || 0;
+    const reviews = await getProductReviews(props.product.id);
+    reviewCount.value = (reviews.length || 0);
   } catch (err) {
     console.error("Failed to load reviews:", err);
   }
@@ -33,21 +30,18 @@ const openReviews = async () => {
   showReviews.value = true;
   await loadReviewCount();
 };
-
-const productImageUrl = props.product?.images?.[0]?.image_url || '';
-const isVerified = !props.product?.images?.[0]?.scan_result?.disease_detected;
 </script>
 
 <template>
   <div class="bg-white/5 border border-white/10 rounded-3xl overflow-hidden group hover:border-[#5cb83a]/50 transition-all duration-300 relative">
     <div class="relative aspect-square overflow-hidden">
-      <img :src="productImageUrl" @error="(e) => e.target.src = 'https://via.placeholder.com/400?text=FarmPay+Produce'"
+      <img :src="product?.images?.[0]?.image_url || 'https://via.placeholder.com/400?text=FarmPay+Produce'" @error="(e) => e.target.src = 'https://via.placeholder.com/400?text=FarmPay+Produce'"
            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
       
       <div class="absolute top-4 left-4 bg-[#061209]/80 backdrop-blur-md border border-[#5cb83a]/30 px-3 py-1.5 rounded-full flex items-center gap-2">
         <ShieldCheck class="text-[#5cb83a]" :size="14" />
         <span class="text-[10px] font-bold text-white uppercase tracking-wider">
-          {{ isVerified ? "AI VERIFIED" : "NOT VERIFIED" }}
+          AI VERIFIED
         </span>
       </div>
 

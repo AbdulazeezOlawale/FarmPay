@@ -88,26 +88,16 @@ const { value: rider_id } = useField('rider_id');
 
 const onAssignRider = assignForm.handleSubmit(async (values, { setErrors }) => {
   try {
-    // Calling assignment endpoint
-    const riderAssignment = await assignRider(values);
-    
-    // Close modal and reset form values immediately upon success
+    await assignRider(values);
+
     isAssignModalOpen.value = false;
     assignForm.resetForm();
-    
-    console.log(riderAssignment);
-    alert(riderAssignment.message || 'Rider assigned successfully!');
 
-    // AUTO REFETCH: Trigger automatic fetch to update statuses to "Busy"
+    alert('Rider assigned successfully!');
     await fetchRiders(currentPage.value);
   } catch (err) {
-    // CAPTURE BACKEND ERROR: "Can only assign rider to paid orders"
-    const errorMessage = err.detail || err.response?.data?.detail || "Assignment failed";
-    console.log(err);
-    setErrors({
-      order_id: errorMessage
-    });
-    console.error('Assignment Error:', err);
+    const errorMessage = err.detail || "Assignment failed";
+    setErrors({ order_id: errorMessage });
   }
 });
 

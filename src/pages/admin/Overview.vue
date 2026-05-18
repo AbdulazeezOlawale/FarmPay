@@ -24,8 +24,7 @@ const stats = ref({
 const fetchStats = async () => {
   isLoading.value = true;
   try {
-    const response = await getAdminDashboardCounts();
-    stats.value = response;
+    stats.value = await getAdminDashboardCounts();
   } catch (err) {
     console.error("Failed to fetch dashboard stats:", err);
   } finally {

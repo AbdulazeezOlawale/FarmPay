@@ -40,8 +40,7 @@ const fetchRiderTasks = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await getRiderOrders(); 
-    orders.value = response.data || response;
+    orders.value = await getRiderOrders();
   } catch (err) {
     console.error("Fetch error:", err);
     errorMessage.value = err.detail || "Failed to load orders";

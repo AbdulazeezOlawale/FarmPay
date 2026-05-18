@@ -1,17 +1,9 @@
 <script setup>
 import { ref } from 'vue';
-import { 
-  Wallet, // Changed Sprout to Wallet to emphasize the "Pay" aspect
-  ShieldCheck, 
-  Truck, 
-  ScanSearch, 
-  ArrowRight, 
-  TrendingUp, 
-  Users, 
-  CheckCircle2,
-  Camera,
-  Microscope,
-  Lock
+import {
+  Wallet, Truck, ArrowRight,
+  TrendingUp, Users, CheckCircle2,
+  Camera, Microscope, Lock
 } from 'lucide-vue-next';
 
 const stats = ref([
@@ -90,7 +82,7 @@ const steps = ref([
               Start Selling
               <ArrowRight class="group-hover:translate-x-1 transition-transform" />
             </router-link>
-            <router-link to="/products" class="border border-white/10 bg-white/5 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all">
+            <router-link to="/marketplace" class="border border-white/10 bg-white/5 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all">
               Buy Produce
             </router-link>
           </div>

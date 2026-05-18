@@ -47,29 +47,21 @@ const openResolveModal = (dispute) => {
 
 const handleSubmit = async () => {
   if (!selectedDispute.value) return;
-  
+
   isSubmitting.value = true;
-  
+
   try {
-    const payload = {
+    await resolveDispute({
       disputeId: selectedDispute.value.id,
-      body: {
-        action: resolutionAction.value
-      }
-    };
+      body: { action: resolutionAction.value }
+    });
 
-    const response = await resolveDispute(payload);
-    console.log("Resolution successful:", response);
-
-    // Close modal and reset state
     isModalOpen.value = false;
     selectedDispute.value = null;
+    emit('refresh');
 
-    // Trigger the refetch in the parent component
-    emit('refresh'); 
-    
   } catch (err) {
-    console.error('Failed to resolve dispute:', err.response?.data?.detail || err.message);
+    console.error('Failed to resolve dispute:', err);
   } finally {
     isSubmitting.value = false;
   }

@@ -1,16 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import api from '@/api/api';
-import { 
-  Wallet, ArrowUpRight, ArrowDownLeft, Loader2, 
-  Clock, CheckCircle2, AlertCircle, Calendar, Banknote
+import {
+  Wallet, ArrowUpRight, Clock, Loader2,
+  Banknote
 } from 'lucide-vue-next';
 
-const auth = useAuthStore();
 const isLoading = ref(true);
 const payouts = ref([]);
-const farmerProfile = ref(null);
 
 // Mock data for demo
 const mockPayouts = [
@@ -24,9 +20,6 @@ const mockPayouts = [
 const fetchPayouts = async () => {
   isLoading.value = true;
   try {
-    // Try to get farmer profile for balance
-    const profile = await api.get('/auth/profile');
-    farmerProfile.value = profile.data || profile;
     payouts.value = mockPayouts;
   } catch (err) {
     console.error("Failed to fetch payouts:", err);
@@ -99,7 +92,7 @@ onMounted(fetchPayouts);
             </div>
             <span class="text-[10px] uppercase text-white/40 font-bold tracking-wider">Available Balance</span>
           </div>
-          <p class="text-3xl font-serif text-white">{{ formatCurrency(farmerProfile?.escrow_balance || 0) }}</p>
+          <p class="text-3xl font-serif text-white">₦0</p>
           <p class="text-[10px] text-white/40 mt-2">Ready for withdrawal</p>
         </div>
       </div>
