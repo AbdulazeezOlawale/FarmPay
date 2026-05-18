@@ -8,8 +8,10 @@ import {
   MapPin, Copy, Loader2, Inbox, LayoutDashboard,
   ShoppingBag, LogOut, Bell, RotateCw, 
   AlertCircle, X, Upload, Trash2, ImageIcon,
-  CreditCard, ScanLine, Eye, ExternalLink
+  CreditCard, ScanLine, Eye, ExternalLink, Truck
 } from 'lucide-vue-next';
+import LiveMap from '@/components/logistics/LiveMap.vue';
+import DeliveryTimeline from '@/components/logistics/DeliveryTimeline.vue';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -37,6 +39,10 @@ const disputeOrder = ref(null);
 const disputeReason = ref('');
 const disputeImages = ref([]);
 const isSubmittingDispute = ref(false);
+
+// --- Tracking Modal State ---
+const isTrackingModalOpen = ref(false);
+const trackingOrder = ref(null);
 
 // User Profile
 const user = ref({
@@ -391,6 +397,16 @@ const getOrderItems = (order) => {
                 Scan Delivery
               </button>
 
+              <!-- Track Order Button - for paid orders -->
+              <button 
+                v-if="order.payment_status === 'paid' && order.delivery_status !== 'completed'"
+                @click="openTrackingModal(order)"
+                class="bg-white/5 text-white border border-white/10 px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all"
+              >
+                <Truck :size="14" />
+                Track Order
+              </button>
+
               <!-- OTP - for paid orders not completed -->
               <div v-if="order.payment_status === 'paid' && order.status !== 'completed' && order.otp_code && order.delivery_status !== 'disputed'" 
                    class="bg-black/40 border border-[#5cb83a]/20 px-5 py-2.5 rounded-xl">
@@ -574,6 +590,28 @@ const getOrderItems = (order) => {
             <Loader2 v-if="isSubmittingDispute" class="animate-spin" :size="18" />
             Submit Dispute to Escrow
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tracking Modal -->
+    <div v-if="isTrackingModalOpen" class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-[#061209]/95 backdrop-blur-md">
+      <div class="bg-[#0d2010] border border-white/10 w-full max-w-2xl rounded-[3rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-serif">Track Your Delivery</h2>
+          <button @click="isTrackingModalOpen = false" class="text-white/20 hover:text-white"><X :size="24" /></button>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Live Map -->
+          <LiveMap 
+            :origin="{ coordinates: [7.4386, 11.0626], name: 'Kaduna' }"
+            :destination="{ coordinates: [7.4250, 11.0580], name: trackingOrder?.delivery_location }"
+            :status="trackingOrder?.delivery_status || 'pending'"
+          />
+
+          <!-- Delivery Timeline -->
+          <DeliveryTimeline :current-status="trackingOrder?.delivery_status || 'pending'" />
         </div>
       </div>
     </div>

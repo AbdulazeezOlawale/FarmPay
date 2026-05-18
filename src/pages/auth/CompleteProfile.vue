@@ -108,7 +108,7 @@ const onComplete = handleSubmit(async (values) => {
             <div class="mt-1 text-[#5cb83a]"><Store :size="20" /></div>
             <div>
               <p class="font-bold text-sm">Business Profile</p>
-              <p class="text-xs text-white/40">Your farm name appears on Interswitch payment receipts to buyers.</p>
+              <p class="text-xs text-white/40">Your farm name appears on Squad payment receipts to buyers.</p>
             </div>
           </div>
           <div class="flex gap-4 items-start">
@@ -200,7 +200,7 @@ const onComplete = handleSubmit(async (values) => {
           <div class="pt-4 border-t border-white/5 space-y-4">
             <div class="flex items-center gap-2">
               <Landmark class="text-[#5cb83a]" :size="16" />
-              <label class="text-[10px] uppercase font-bold text-white/30">Settlement (Interswitch Payout)</label>
+              <label class="text-[10px] uppercase font-bold text-white/30">Settlement (Squad Payout)</label>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -215,13 +215,13 @@ const onComplete = handleSubmit(async (values) => {
               </select>
 
               <div class="relative">
-                <input v-model="accountNumber" type="text" maxlength="10" placeholder="10-digit NUBAN"
+                <input v-model="accountNumber" type="text" maxlength="10" placeholder="10-digit Account Number"
                   :class="errors.accountNumber ? 'border-red-500/50' : 'border-white/10'"
                   class="w-full bg-white/5 border rounded-xl p-4 outline-none focus:border-[#5cb83a]">
                 <CheckCircle2 v-if="accountNumber?.length === 10" class="absolute right-4 top-1/2 -translate-y-1/2 text-[#5cb83a]" :size="16" />
               </div>
             </div>
-            <p class="text-[10px] text-white/20 italic">Ensures funds reach your bank account after delivery release.</p>
+            <p class="text-[10px] text-white/20 italic">For testing, any 10-digit number works. Funds go to this account after delivery.</p>
           </div>
 
           <div class="p-4 bg-white/5 border border-white/10 rounded-xl flex gap-3 italic">

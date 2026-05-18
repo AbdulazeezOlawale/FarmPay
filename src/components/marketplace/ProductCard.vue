@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue';
-import { ShieldCheck, MapPin, ShoppingCart, Star, Loader2 } from 'lucide-vue-next';
+import { ShieldCheck, MapPin, ShoppingCart, Star, Loader2, Eye } from 'lucide-vue-next';
 import { getProductReviews } from '@/api/api';
 import Reviews from './Reviews.vue';
+import ProductDetailModal from './ProductDetailModal.vue';
 
 const props = defineProps({
   product: {
@@ -11,9 +12,10 @@ const props = defineProps({
   }
 });
 
-defineEmits(['open-modal']);
+const emit = defineEmits(['open-modal']);
 
 const showReviews = ref(false);
+const showDetail = ref(false);
 const isLoadingReviews = ref(false);
 const reviewCount = ref(0);
 
@@ -78,15 +80,31 @@ const isVerified = !props.product?.images?.[0]?.scan_result?.disease_detected;
           <Star :size="14" class="text-amber-400 fill-amber-400" />
           <span>Reviews</span>
         </button>
+        <button 
+          @click="showDetail = true"
+          class="flex items-center gap-1.5 text-[10px] text-white/40 hover:text-white transition-colors"
+        >
+          <Eye :size="14" />
+          <span>Details</span>
+        </button>
       </div>
 
-      <button 
-        @click="$emit('open-modal', product)"
-        class="w-full bg-[#2d7a18] hover:bg-[#3a9e20] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all mt-2 active:scale-95 shadow-lg shadow-[#2d7a18]/20"
-      >
-        <ShoppingCart :size="18" />
-        Pay to Escrow
-      </button>
+      <div class="flex gap-2 mt-2">
+        <button 
+          @click="showDetail = true"
+          class="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-1 transition-all"
+        >
+          <Eye :size="14" />
+          View
+        </button>
+        <button 
+          @click="$emit('open-modal', product)"
+          class="flex-[2] bg-[#2d7a18] hover:bg-[#3a9e20] text-white py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-[#2d7a18]/20"
+        >
+          <ShoppingCart :size="16" />
+          Buy
+        </button>
+      </div>
     </div>
 
     <!-- Reviews Modal -->

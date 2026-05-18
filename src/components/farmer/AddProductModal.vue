@@ -1,22 +1,26 @@
 <script setup>
 import { ref } from 'vue';
 import api from '@/api/api';
-import { X, Upload, Leaf, BadgeCheck, Loader2, ScanEye } from 'lucide-vue-next';
+import { X, Upload, Leaf, BadgeCheck, Loader2, ScanEye, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-vue-next';
 
 const props = defineProps(['isOpen']);
 const emit = defineEmits(['close', 'refresh']);
 
 const isSubmitting = ref(false);
-const isScanning = ref(false); // For the AI simulation
+const isScanning = ref(false);
 const imageFile = ref(null);
 const imagePreview = ref(null);
+
+// Scan results from backend
+const scanResult = ref(null);
+const scanComplete = ref(false);
 
 const form = ref({
   name: '',
   description: '',
   price: '',
-  available_quantity: 1, // Matches backend key
-  unit: 'Dozen'         // Matches backend key
+  available_quantity: 1,
+  unit: 'Dozen'
 });
 
 const units = ['Dozen', 'Basket', '50kg Bag', '100kg Bag', 'Crate'];
@@ -26,6 +30,8 @@ const onFileChange = (e) => {
   if (!file) return;
   imageFile.value = file;
   imagePreview.value = URL.createObjectURL(file);
+  scanResult.value = null;
+  scanComplete.value = false;
 };
 
 const handleListing = async () => {
@@ -35,7 +41,7 @@ const handleListing = async () => {
     // 1. START AI SCAN SIMULATION
     isScanning.value = true;
     await new Promise(resolve => setTimeout(resolve, 2500)); 
-    isScanning.value = false; // Turn off scan before starting upload
+    isScanning.value = false;
 
     // 2. START UPLOAD
     isSubmitting.value = true;
@@ -43,31 +49,39 @@ const handleListing = async () => {
     const formData = new FormData();
     formData.append('name', form.value.name);
     formData.append('description', form.value.description || '');
-    // CRITICAL: Ensure numbers are actually numbers
     formData.append('price', parseFloat(form.value.price)); 
     formData.append('available_quantity', parseInt(form.value.available_quantity));
     formData.append('unit', form.value.unit);
     formData.append('image', imageFile.value);
-console.log([...formData.entries()]);
+
     // 3. API CALL
     const response = await api.post('/products/upload', formData, {
-  headers: {
-    'Content-Type': 'multipart/form-data'
-  }
-});
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     
-    alert("Upload Success:", response.data);
+    // Capture scan results from backend
+    scanResult.value = {
+      is_healthy: !response.issue_type,
+      disease_name: response.name || null,
+      treatment: response.treatment || null,
+      issue_type: response.issue_type || null
+    };
+    
+    // If unhealthy, show info but still allow listing with warning
+    if (!scanResult.value.is_healthy) {
+      scanComplete.value = true;
+      // Still save but mark as unhealthy
+    }
+    
     emit('refresh');
     emit('close');
     resetForm();
 
   } catch (err) {
     console.error("Upload failed:", err.response?.data || err.message);
-    // If the backend sends a specific error message, show it
-    const msg = err.response?.data?.detail?.[0]?.msg || "Backend Error: Check your fields.";
-    alert(`Upload Failed: ${msg}`);
+    const msg = err.response?.data?.detail || "Upload failed";
+    alert(`Error: ${msg}`);
   } finally {
-    // 4. RESET BOTH STATES
     isSubmitting.value = false;
     isScanning.value = false;
   }
@@ -77,6 +91,8 @@ const resetForm = () => {
   form.value = { name: '', description: '', price: '', available_quantity: 1, unit: 'Dozen' };
   imageFile.value = null;
   imagePreview.value = null;
+  scanResult.value = null;
+  scanComplete.value = false;
 };
 </script>
 
@@ -116,6 +132,29 @@ const resetForm = () => {
             </div>
           </div>
           <input type="file" ref="fileInput" @change="onFileChange" class="hidden" accept="image/*" />
+
+        <!-- Scan Result Display -->
+        <div v-if="scanComplete" class="p-4 rounded-2xl border" :class="scanResult?.is_healthy ? 'bg-[#5cb83a]/10 border-[#5cb83a]/20' : 'bg-red-500/10 border-red-500/20'">
+          <div class="flex items-start gap-3">
+            <CheckCircle v-if="scanResult?.is_healthy" class="text-[#5cb83a] shrink-0 mt-0.5" :size="20" />
+            <AlertTriangle v-else class="text-red-400 shrink-0 mt-0.5" :size="20" />
+            <div>
+              <p class="font-bold" :class="scanResult?.is_healthy ? 'text-[#5cb83a]' : 'text-red-400'">
+                {{ scanResult?.is_healthy ? 'Product Verified - Healthy!' : 'Disease Detected' }}
+              </p>
+              <p v-if="!scanResult?.is_healthy && scanResult?.disease_name" class="text-sm text-red-300 mt-1">
+                Issue: {{ scanResult.disease_name }}
+              </p>
+              <div v-if="!scanResult?.is_healthy && scanResult?.treatment" class="mt-3 p-3 bg-[#061209]/50 rounded-xl">
+                <p class="text-[10px] text-white/40 uppercase font-bold mb-1">Recommended Treatment:</p>
+                <p class="text-sm text-white/80">{{ scanResult.treatment }}</p>
+              </div>
+              <p v-if="!scanResult?.is_healthy" class="text-[10px] text-white/40 mt-2">
+                This product will be flagged as unhealthy in the marketplace. Buyers will see this warning before purchasing.
+              </p>
+            </div>
+          </div>
+        </div>
         </div>
 
         <div class="space-y-4">

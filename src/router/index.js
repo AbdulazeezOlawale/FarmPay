@@ -43,12 +43,18 @@ const routes = [
     ],
   },
 
-  // Role-Specific Dashboards
+// Role-Specific Dashboards
   {
-    path: "/buyer",
-    name: "BuyerDashboard",
-    component: BuyerDashboard,
-    meta: { requiresAuth: true, role: "buyer" },
+    path: "/farmer",
+    name: "FarmerDashboard",
+    component: FarmerDashboard,
+    meta: { requiresAuth: true, role: "farmer" },
+    children: [
+      { path: "", redirect: "/farmer" },
+      { path: "inventory", name: "FarmerInventory", component: () => import("../pages/farmer/Inventory.vue") },
+      { path: "payouts", name: "FarmerPayouts", component: () => import("../pages/farmer/Payouts.vue") },
+      { path: "history", name: "FarmerHistory", component: () => import("../pages/farmer/OrderHistory.vue") },
+    ],
   },
   {
     path: "/farmer",

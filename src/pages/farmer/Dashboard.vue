@@ -1,19 +1,22 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../stores/auth';
-import { useRouter } from 'vue-router'; // Changed from direct import for best practice
+import { useRouter } from 'vue-router';
 import api from '@/api/api'; 
 import { 
   LayoutDashboard, PlusCircle, Package, Wallet, 
   History, Settings, LogOut, ShoppingBag,
   ShieldAlert, TrendingUp, CheckCircle2,
-  Clock, ChevronRight
+  Clock, ChevronRight, BarChart3, Cloud
 } from 'lucide-vue-next';
 
 import AddProductModal from '../../components/farmer/AddProductModal.vue';
+import FarmAnalytics from '@/components/analytics/FarmAnalytics.vue';
+import WeatherWidget from '@/components/analytics/WeatherWidget.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
+const selectedPeriod = ref('7d');
 
 // Computed user properties
 const userName = computed(() => auth.user?.full_name || 'Farmer');
@@ -142,6 +145,16 @@ onMounted(fetchFarmerData);
             </div>
             <p class="text-white/40 text-xs font-bold uppercase tracking-widest mb-1">{{ s.label }}</p>
             <p class="text-2xl font-serif">{{ s.value }}</p>
+          </div>
+        </div>
+
+        <!-- Analytics & Weather Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+            <FarmAnalytics :period="selectedPeriod" @period-change="p => selectedPeriod = p" />
+          </div>
+          <div>
+            <WeatherWidget location="Kaduna" />
           </div>
         </div>
 
