@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
-import { getMyProducts, deleteProduct } from '@/api/api';
+import { getMyProducts} from '@/api/api';
 import { 
   Package, Plus, Edit, Trash2, Loader2, 
   RefreshCw, Image, Eye, AlertTriangle

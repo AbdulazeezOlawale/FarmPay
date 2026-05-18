@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { RefreshCw, Loader2, CreditCard, Search } from 'lucide-vue-next';
+import { RefreshCw, Loader2, CreditCard, Search, Receipt } from 'lucide-vue-next';
 import { getAllPayment } from '../../api/api';
 import PaymentTable from './tables/PaymentTable.vue';
 

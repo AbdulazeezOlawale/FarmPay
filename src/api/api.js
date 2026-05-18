@@ -37,9 +37,14 @@ api.interceptors.response.use(
 export const login = (data) => api.post("/auth/login", data);
 export const register = (data) => api.post("/auth/register", data);
 
-// Farmer Specific
+// Farmer APIs
 export const completeProfile = (data) => api.post("/auth/farmer_profile", data);
-export const getUserProfile = () => api.get("/auth/me"); // Assuming this exists
+export const getUserProfile = () => api.get("/auth/me");
+export const getMyProducts = async () => {return api.get('/products/my-products');
+};
+export const deleteProduct = (id) => api.delete(`/products/${id}`);
+export const getProductReviews = (productId) => api.get(`/products/${productId}/reviews`);
+export const createReview = (data) => api.post("/reviews", data);
 
 export const createRider = (data) => api.post("/admin/create-dispatch-rider", data)
 export const getAllRiders = (data) => api.get(`/admin/dispatch-riders/details?page=${data.page}&per_page=${data.per_page}`);
@@ -50,6 +55,7 @@ export const getAllOrders = (data) => api.get(`/admin/orders/details?page=${data
 
 // all users
 export const getAllUsers = (data) => api.get(`/admin/users/details?page=${data.page}&per_page=${data.per_page}`);
+export const verifyUser = (userId) => api.post(`/admin/users/${userId}/verify`);
 // all payment
 export const getAllPayment = (data) => api.get(`/admin/payments/details?page=${data.page}&per_page=${data.per_page}`);
 
@@ -58,6 +64,7 @@ export const getFarmersProfile = (data) => api.get(`/admin/farmer-profiles/detai
 
 // all products
 export const getAllProducts = (data) => api.get(`/admin/products/details?page=${data.page}&per_page=${data.per_page}`);
+export const getAdminDashboardCounts = () => api.get('/admin/dashboard/counts');
 
 // resolve dispute
 export const getAllDisputes = (data) => api.get(`/admin/disputes?page=${data.page}&per_page=${data.per_page}`);
