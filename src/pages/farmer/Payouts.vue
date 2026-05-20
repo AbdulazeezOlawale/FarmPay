@@ -1,39 +1,37 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { getFarmerPayouts } from '@/api/api';
 import {
   Wallet, ArrowUpRight, Clock, Loader2,
-  Banknote
+  Banknote, RefreshCw
 } from 'lucide-vue-next';
 
 const isLoading = ref(true);
 const payouts = ref([]);
-
-// Mock data for demo
-const mockPayouts = [
-  { id: '1', amount: 45000, type: 'released', date: '2026-05-15', order_id: 'order-123', status: 'completed' },
-  { id: '2', amount: 28000, type: 'released', date: '2026-05-10', order_id: 'order-122', status: 'completed' },
-  { id: '3', amount: 15000, type: 'released', date: '2026-05-05', order_id: 'order-121', status: 'completed' },
-  { id: '4', amount: 65000, type: 'escrow', date: '2026-05-18', order_id: 'order-125', status: 'pending' },
-  { id: '5', amount: 32000, type: 'escrow', date: '2026-05-17', order_id: 'order-124', status: 'pending' },
-];
+const farmerProfile = ref(null);
+const totalEarnings = ref(0);
+const escrowBalance = ref(0);
+const totalSales = ref(0);
 
 const fetchPayouts = async () => {
   isLoading.value = true;
   try {
-    payouts.value = mockPayouts;
+    const data = await getFarmerPayouts();
+    payouts.value = data.transactions || [];
+    farmerProfile.value = {
+      bank_name: data.bank_name,
+      account_number: data.account_number,
+      virtual_account_number: data.virtual_account_number
+    };
+    totalEarnings.value = data.total_earnings || 0;
+    escrowBalance.value = data.escrow_balance || 0;
+    totalSales.value = data.total_sales || 0;
   } catch (err) {
     console.error("Failed to fetch payouts:", err);
-    payouts.value = mockPayouts;
   } finally {
     isLoading.value = false;
   }
 };
-
-const totalEarnings = computed(() => {
-  return payouts.value
-    .filter(p => p.type === 'released' && p.status === 'completed')
-    .reduce((sum, p) => sum + p.amount, 0);
-});
 
 const pendingPayouts = computed(() => {
   return payouts.value
@@ -46,6 +44,7 @@ const formatCurrency = (value) => {
 };
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
   return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
@@ -56,9 +55,18 @@ onMounted(fetchPayouts);
   <div class="min-h-screen bg-[#061209] text-[#f0ede4] p-6 md:p-8">
     <div class="max-w-6xl mx-auto">
       <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-serif">Payouts</h1>
-        <p class="text-white/40 text-sm">Track your earnings and withdrawals</p>
+      <div class="flex justify-between items-start mb-8">
+        <div>
+          <h1 class="text-3xl font-serif">Payouts</h1>
+          <p class="text-white/40 text-sm">Track your earnings and withdrawals</p>
+        </div>
+        <button 
+          @click="fetchPayouts" 
+          class="p-2 rounded-full bg-white/5 border border-white/10 hover:border-[#5cb83a] transition-all"
+          :class="{ 'animate-spin': isLoading }"
+        >
+          <RefreshCw :size="18" />
+        </button>
       </div>
 
       <!-- Stats Cards -->
@@ -81,7 +89,7 @@ onMounted(fetchPayouts);
             </div>
             <span class="text-[10px] uppercase text-white/40 font-bold tracking-wider">In Escrow</span>
           </div>
-          <p class="text-3xl font-serif text-amber-500">{{ formatCurrency(pendingPayouts) }}</p>
+          <p class="text-3xl font-serif text-amber-500">{{ formatCurrency(escrowBalance) }}</p>
           <p class="text-[10px] text-white/40 mt-2">Awaiting delivery confirmation</p>
         </div>
 
@@ -90,10 +98,10 @@ onMounted(fetchPayouts);
             <div class="p-2 bg-blue-500/10 rounded-xl">
               <Banknote class="text-blue-400" :size="20" />
             </div>
-            <span class="text-[10px] uppercase text-white/40 font-bold tracking-wider">Available Balance</span>
+            <span class="text-[10px] uppercase text-white/40 font-bold tracking-wider">Total Sales</span>
           </div>
-          <p class="text-3xl font-serif text-white">₦0</p>
-          <p class="text-[10px] text-white/40 mt-2">Ready for withdrawal</p>
+          <p class="text-3xl font-serif text-white">{{ formatCurrency(totalSales) }}</p>
+          <p class="text-[10px] text-white/40 mt-2">Lifetime revenue</p>
         </div>
       </div>
 
